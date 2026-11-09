@@ -1,0 +1,456 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#070913">
+    <meta name="description" content="Ambient soundscape mixer, Rage Mode instrumentals, focus timer, and lock-screen playback.">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="FocusFlow">
+    <title>FocusFlow Studio — Ambient Soundscape & Study Mixer</title>
+
+    <!-- PWA -->
+    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/svg+xml" href="icon.svg">
+    <link rel="apple-touch-icon" href="icon.svg">
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    },
+                    colors: {
+                        studio: {
+                            950: '#070913', 900: '#0c1021', 850: '#11162d', 800: '#161d3a',
+                            700: '#232d54', accent: '#6366f1', cyan: '#06b6d4',
+                            emerald: '#10b981', amber: '#f59e0b', rose: '#f43f5e'
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body class="min-h-screen flex flex-col justify-between pb-28 selection:bg-indigo-500 selection:text-white">
+
+    <!-- TOP HEADER -->
+    <header class="sticky top-0 z-30 glass-panel border-b border-white/10">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+                <div class="flex items-center justify-between">
+                    <div class="flex items-center gap-3">
+                        <div class="w-11 h-11 rounded-2xl bg-gradient-to-br from-indigo-500 via-purple-500 to-cyan-400 flex items-center justify-center shadow-lg shadow-indigo-500/30">
+                            <i class="fa-solid fa-wave-square text-white text-lg"></i>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2.5">
+                                <h1 class="text-lg sm:text-xl font-bold tracking-tight text-white">FocusFlow <span class="text-indigo-400 font-normal">Studio Pro</span></h1>
+                                <span id="engineStatusBadge" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-800/90 text-slate-300 border border-white/10">
+                                    <span id="engineStatusDot" class="w-1.5 h-1.5 rounded-full bg-slate-400"></span>
+                                    <span id="engineStatusText">Standby</span>
+                                </span>
+                                <span class="hidden sm:inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-mono bg-indigo-500/15 text-indigo-300 border border-indigo-500/30">
+                                    42 Channels + 🔥 Rage Mode
+                                </span>
+                            </div>
+                            <p class="text-xs text-slate-400">Ambient Soundscape Mixer, Iconic Rage Instrumentals (No Words) &amp; Entrainment Studio</p>
+                        </div>
+                    </div>
+                    <button id="shortcutsInfoBtn" class="lg:hidden p-2 rounded-xl bg-slate-800/80 text-slate-300 hover:text-white border border-white/10" title="Keyboard Shortcuts">
+                        <i class="fa-regular fa-keyboard"></i>
+                    </button>
+                </div>
+
+                <div class="flex-1 max-w-xl mx-auto lg:mx-0 w-full">
+                    <div class="relative h-14 rounded-2xl bg-studio-950/90 border border-white/10 overflow-hidden flex items-center px-3">
+                        <canvas id="visualizerCanvas" class="w-full h-full block"></canvas>
+                        <div class="absolute top-1.5 left-3 flex items-center gap-2 pointer-events-none">
+                            <span class="text-[10px] font-mono uppercase tracking-wider text-slate-400 bg-studio-900/80 px-2 py-0.5 rounded-md border border-white/5">
+                                <i class="fa-solid fa-signal text-indigo-400 mr-1"></i>Master Spectrum
+                            </span>
+                            <span id="activeChannelsCountBadge" class="text-[10px] font-mono text-indigo-300 bg-indigo-950/80 px-2 py-0.5 rounded-md border border-indigo-500/30">
+                                0 Active
+                            </span>
+                        </div>
+                        <button id="vizModeBtn" class="absolute top-1.5 right-2.5 text-[10px] font-mono text-slate-400 hover:text-white bg-studio-900/90 hover:bg-studio-800 px-2 py-0.5 rounded-md border border-white/10 transition" title="Switch Visualizer Mode">
+                            Mode: <span id="vizModeLabel" class="text-indigo-400">Hybrid</span>
+                        </button>
+                    </div>
+                </div>
+
+                <div class="hidden lg:flex items-center gap-2.5">
+                    <div class="text-right mr-1">
+                        <div class="text-[11px] text-slate-400">Shortcuts</div>
+                        <div class="text-[11px] font-mono text-slate-300"><kbd class="px-1.5 py-0.5 bg-slate-800 rounded border border-white/10 text-[10px]">Space</kbd> Play <kbd class="px-1.5 py-0.5 bg-slate-800 rounded border border-white/10 text-[10px] ml-1">M</kbd> Mute</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6 flex-1">
+        <!-- 12 CURATED PRESETS -->
+        <section class="glass-panel rounded-2xl p-4 sm:p-5 shadow-xl">
+            <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                <div class="space-y-0.5">
+                    <div class="flex items-center gap-2">
+                        <i class="fa-solid fa-sliders text-indigo-400 text-sm"></i>
+                        <h2 class="text-sm font-semibold uppercase tracking-wider text-slate-200">12 Curated Studio Mixes &amp; Soundscape Scenes</h2>
+                    </div>
+                    <p class="text-xs text-slate-400">One-click multi-layered study environments, Organic Drift (Meander), or save your own custom balance</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-2">
+                    <button id="organicDriftBtn" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800/80 hover:bg-slate-700/80 text-slate-300 border border-white/10 transition" title="Slowly oscillates active channel volumes by ±12%">
+                        <i class="fa-solid fa-wind text-emerald-400"></i>
+                        <span>Organic Drift: <strong id="organicDriftStatus" class="text-slate-400">OFF</strong></span>
+                    </button>
+                    <button id="randomMixBtn" class="inline-flex items-center gap-2 px-3 py-2 rounded-xl text-xs font-semibold bg-slate-800/80 hover:bg-slate-700/80 text-slate-200 border border-white/10 transition">
+                        <i class="fa-solid fa-dice text-cyan-400"></i>
+                        <span>Inspire Me</span>
+                    </button>
+                    <button id="openSaveMixModalBtn" class="inline-flex items-center gap-2 px-3.5 py-2 rounded-xl text-xs font-semibold bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/40 transition shadow-sm">
+                        <i class="fa-solid fa-bookmark"></i>
+                        <span>Save Current Mix</span>
+                    </button>
+                </div>
+            </div>
+
+            <div class="mt-4 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2.5" id="presetButtonsContainer"></div>
+
+            <div id="saveMixFormBar" class="hidden mt-3 pt-3 border-t border-white/10 flex flex-col sm:flex-row items-stretch sm:items-center gap-2">
+                <input id="customMixNameInput" type="text" maxlength="36" placeholder="Enter mix name..." class="flex-1 px-3.5 py-2 rounded-xl bg-studio-950 border border-indigo-500/40 text-xs text-white placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+                <div class="flex items-center gap-2">
+                    <button id="confirmSaveMixBtn" class="px-4 py-2 rounded-xl text-xs font-semibold bg-indigo-600 hover:bg-indigo-500 text-white transition">Save Mix</button>
+                    <button id="cancelSaveMixBtn" class="px-3 py-2 rounded-xl text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 transition">Cancel</button>
+                </div>
+            </div>
+
+            <div id="userSavedMixesArea" class="mt-3 pt-3 border-t border-white/5 hidden">
+                <div class="text-[11px] font-medium text-slate-400 mb-2 flex items-center gap-1.5">
+                    <i class="fa-solid fa-star text-amber-400 text-[10px]"></i> Your Saved Custom Mixes:
+                </div>
+                <div id="userSavedMixesList" class="flex flex-wrap items-center gap-2"></div>
+            </div>
+        </section>
+
+        <!-- RAGE MODE -->
+        <section class="rage-console-glow rounded-2xl p-4 sm:p-5 shadow-xl">
+            <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+                <div class="space-y-1">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-rose-500/20 text-rose-300 border border-rose-500/40 flex items-center gap-1.5">
+                            <i class="fa-solid fa-fire-flame-curved text-rose-400"></i> RAGE MODE / GRINDSET DECK
+                        </span>
+                        <h2 class="text-sm sm:text-base font-bold tracking-tight text-white">
+                            Iconic Instrumental Anthems &amp; Phonk Synthesizers <span class="text-rose-400 font-normal text-xs">(100% Pure Instrumental • No Words)</span>
+                        </h2>
+                    </div>
+                    <p class="text-xs text-slate-300">Play iconic dark synthwave, phonk, choir &amp; organ instrumentals solo or layer them directly with Rain, Thunder, Fireplace, or Binaural Beats.</p>
+                </div>
+                <div class="flex flex-wrap items-center gap-2.5 bg-studio-950/80 p-2.5 rounded-xl border border-rose-500/25">
+                    <div class="flex items-center rounded-lg bg-studio-900 p-0.5 border border-white/10">
+                        <button data-rage-vibe="slowed" class="rage-vibe-btn px-2.5 py-1 rounded-md text-[11px] font-medium text-slate-300 hover:text-white transition">🌊 Slowed + Reverb</button>
+                        <button data-rage-vibe="normal" class="rage-vibe-btn px-2.5 py-1 rounded-md text-[11px] font-semibold bg-rose-600 text-white shadow transition">⚡ Normal (1.0x)</button>
+                        <button data-rage-vibe="nightcore" class="rage-vibe-btn px-2.5 py-1 rounded-md text-[11px] font-medium text-slate-300 hover:text-white transition">🔥 Nightcore (1.22x)</button>
+                    </div>
+                    <button id="rageDrumsToggleBtn" class="px-3 py-1.5 rounded-lg text-[11px] font-semibold bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-500/40 transition flex items-center gap-1.5">
+                        <i class="fa-solid fa-drum text-rose-400" id="rageDrumsToggleIcon"></i>
+                        <span id="rageDrumsToggleText">Drums: ON</span>
+                    </button>
+                    <div class="flex items-center gap-2 px-2 py-1 rounded-lg bg-studio-900 border border-white/10">
+                        <span class="text-[11px] font-semibold text-rose-300 whitespace-nowrap"><i class="fa-solid fa-volume-high mr-1"></i>808 Boost</span>
+                        <input id="rageBassBoostSlider" type="range" min="0" max="100" value="45" class="studio-slider w-20">
+                        <span id="rageBassBoostLabel" class="text-[10px] font-mono text-slate-200 w-7 text-right">45%</span>
+                    </div>
+                </div>
+            </div>
+            <div class="mt-4 pt-3 border-t border-rose-500/20">
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-[11px] font-semibold uppercase tracking-wider text-rose-300 flex items-center gap-1.5">
+                        <i class="fa-solid fa-bolt text-amber-400"></i> One-Click Rage + Weather Hybrid Mixes
+                    </span>
+                    <button id="jumpToRageCategoryBtn" class="text-[11px] text-rose-300 hover:text-white underline font-medium">View All 10 Iconic Instrumentals Below ↓</button>
+                </div>
+                <div id="rageHybridPresetsContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-2"></div>
+            </div>
+        </section>
+
+        <!-- NOTIFICATION BAR ENGINE -->
+        <section class="glass-panel rounded-2xl p-4 sm:p-5 shadow-xl border border-cyan-500/30 bg-gradient-to-r from-studio-900/90 via-studio-850/90 to-indigo-950/60">
+            <div class="flex flex-col xl:flex-row xl:items-center justify-between gap-4">
+                <div class="space-y-1.5 max-w-xl">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <span class="px-2.5 py-0.5 rounded-full text-[10px] font-mono font-bold uppercase tracking-wider bg-cyan-500/20 text-cyan-300 border border-cyan-500/40 flex items-center gap-1.5">
+                            <i class="fa-solid fa-mobile-screen-button text-cyan-400"></i> SCREEN-OFF &amp; NOTIFICATION BAR ENGINE
+                        </span>
+                        <span id="bgAudioStatusPill" class="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium bg-slate-800/90 text-slate-300 border border-white/10">
+                            <span id="bgAudioStatusDot" class="w-2 h-2 rounded-full bg-slate-400"></span>
+                            <span id="bgAudioStatusText">Play Any Sound to Activate Notification Bar</span>
+                        </span>
+                    </div>
+                    <h2 class="text-sm sm:text-base font-bold text-white">Keep Playing With Phone Closed &amp; Control Tracks From Your Lock Screen</h2>
+                    <p class="text-xs text-slate-300 leading-relaxed">
+                        Uses a live MediaRecorder bridge to route your mix into a real &lt;audio&gt; element so Chrome keeps it alive on screen-off.
+                    </p>
+                </div>
+                <div class="flex items-center gap-3.5 bg-studio-950/95 p-3 rounded-2xl border border-white/15 shadow-inner min-w-[290px] sm:min-w-[340px]">
+                    <img id="notificationArtworkPreview" alt="Lock Screen Cover" class="w-14 h-14 rounded-xl object-cover border border-white/15 shrink-0 shadow-md bg-studio-900" src="icon.svg">
+                    <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-1.5">
+                            <span class="text-[9px] font-mono uppercase tracking-wider px-1.5 py-0.5 rounded bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">OS Notification Preview</span>
+                            <span id="notifPreviewVibeBadge" class="text-[9px] font-mono text-rose-300 truncate">1.0x Normal</span>
+                        </div>
+                        <div id="notifPreviewTitle" class="text-xs font-bold text-white truncate mt-1">FocusFlow Studio Ready</div>
+                        <div id="notifPreviewArtist" class="text-[11px] text-slate-400 truncate">Select a Rage Track or Ambient Mix</div>
+                    </div>
+                    <div class="flex items-center gap-1 shrink-0">
+                        <button id="notifPrevBtn" class="w-8 h-8 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-slate-200 hover:text-white flex items-center justify-center border border-white/10 transition">
+                            <i class="fa-solid fa-backward-step text-xs"></i>
+                        </button>
+                        <button id="notifPlayPauseBtn" class="w-9 h-9 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white flex items-center justify-center shadow transition">
+                            <i class="fa-solid fa-play text-xs" id="notifPlayPauseIcon"></i>
+                        </button>
+                        <button id="notifNextBtn" class="w-8 h-8 rounded-lg bg-slate-800/90 hover:bg-slate-700 text-slate-200 hover:text-white flex items-center justify-center border border-white/10 transition">
+                            <i class="fa-solid fa-forward-step text-xs"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="flex flex-col sm:flex-row xl:flex-col gap-2.5 bg-studio-950/80 p-3 rounded-xl border border-white/10 text-xs">
+                    <div class="flex items-center justify-between gap-2">
+                        <label for="notifSkipModeSelect" class="text-[11px] text-slate-300 font-medium whitespace-nowrap">
+                            <i class="fa-solid fa-sliders text-cyan-400 mr-1"></i>Lock-Screen ⏮/⏭ Buttons:
+                        </label>
+                        <select id="notifSkipModeSelect" class="bg-studio-900 text-white text-[11px] font-semibold rounded-lg px-2.5 py-1.5 border border-cyan-500/40 focus:outline-none">
+                            <option value="rage" selected>🔥 Switch Rage Mode Songs (10)</option>
+                            <option value="presets">✨ Switch Soundscape Mixes (12)</option>
+                            <option value="hybrid">⚡ Switch Rage + Weather Hybrids (6)</option>
+                        </select>
+                    </div>
+                    <div class="flex flex-wrap items-center justify-between gap-2 pt-1 border-t border-white/10">
+                        <button id="pocketAudioLockBtn" class="flex-1 px-2.5 py-1.5 rounded-lg text-[11px] font-semibold bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 transition flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-lock text-emerald-400" id="pocketAudioLockIcon"></i>
+                            <span>Screen-Off Audio: <strong id="pocketAudioLockState">ON</strong></span>
+                        </button>
+                        <button id="wakeLockToggleBtn" class="px-2.5 py-1.5 rounded-lg text-[11px] font-medium bg-slate-800 hover:bg-slate-700 text-slate-300 border border-white/10 transition flex items-center justify-center gap-1.5">
+                            <i class="fa-solid fa-sun text-amber-400"></i>
+                            <span>Keep Screen On: <strong id="wakeLockStateText">OFF</strong></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- ACTIVE CHANNELS QUICK-MIX STRIP -->
+        <section id="activeMixQuickDock" class="hidden glass-panel rounded-2xl p-3.5 sm:px-5 border border-indigo-500/30 shadow-lg">
+            <div class="flex items-center justify-between gap-2 mb-2.5">
+                <div class="flex items-center gap-2">
+                    <span class="w-2 h-2 rounded-full bg-indigo-400 animate-pulse"></span>
+                    <h3 class="text-xs font-bold uppercase tracking-wider text-indigo-300">Active Channels Quick-Mix Strip</h3>
+                    <span id="quickDockCount" class="text-[11px] font-mono text-slate-400">(0 playing)</span>
+                </div>
+                <button id="quickDockSilenceBtn" class="text-[11px] text-rose-400 hover:text-rose-300 font-medium flex items-center gap-1">
+                    <i class="fa-solid fa-xmark"></i> Clear All
+                </button>
+            </div>
+            <div id="activeMixPillsContainer" class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2"></div>
+        </section>
+
+        <!-- MAIN GRID -->
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+            <div class="lg:col-span-8 space-y-5">
+                <div class="glass-panel rounded-2xl p-3.5 space-y-3 border border-white/10">
+                    <div class="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-2.5">
+                        <div class="relative flex-1">
+                            <i class="fa-solid fa-magnifying-glass absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs"></i>
+                            <input id="channelSearchInput" type="text" placeholder="Search sounds..." class="w-full pl-9 pr-8 py-2 rounded-xl bg-studio-950/90 border border-white/10 text-xs text-white placeholder-slate-400 focus:outline-none focus:border-indigo-500 transition">
+                            <button id="clearSearchBtn" class="hidden absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-white text-xs">
+                                <i class="fa-solid fa-circle-xmark"></i>
+                            </button>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pb-0.5" id="categoryFilterTabs">
+                        <button data-cat-filter="all" class="cat-tab-btn shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold bg-indigo-600 text-white shadow transition">All Sounds (42)</button>
+                        <button data-cat-filter="rage" class="cat-tab-btn shrink-0 px-3 py-1.5 rounded-xl text-xs font-semibold bg-rose-950/90 text-rose-300 hover:text-white border border-rose-500/40 transition"><i class="fa-solid fa-fire-flame-curved text-rose-400 mr-1"></i>🔥 Rage Instrumentals (10)</button>
+                        <button data-cat-filter="active" class="cat-tab-btn shrink-0 px-3 py-1.5 rounded-xl text-xs font-medium bg-studio-900/90 text-slate-300 hover:text-white border border-white/5 transition"><i class="fa-solid fa-wave-square text-indigo-400 mr-1"></i>Active Only</button>
+                        <button data-cat-filter="weather" class="cat-tab-btn shrink-0 px-3 py-1.5 rounded-xl text-xs font-medium bg-studio-900/90 text-slate-300 hover:text-white border border-white/5 transition"><i class="fa-solid fa-cloud-showers-heavy text-cyan-400 mr-1"></i>Weather &amp; Water (7)</button>
+                        <button data-cat-filter="nature" class="cat-tab-btn shrink-0 px-3 py-1.5 rounded-xl text-xs font-medium bg-studio-900/90 text-slate-300 hover:text-white border border-white/5 transition"><i class="fa-solid fa-tree text-emerald-400 mr-1"></i>Nature &amp; Night (5)</button>
+                        <button data-cat-filter="spaces" class="cat-tab-btn shrink-0 px-3 py-1.5 rounded-xl text-xs font-medium bg-studio-900/90 text-slate-300 hover:text-white border border-white/5 transition"><i class="fa-solid fa-mug-saucer text-amber-400 mr-1"></i>Study Spaces &amp; Urban (7)</button>
+                        <button data-cat-filter="noise" class="cat-tab-btn shrink-0 px-3 py-1.5 rounded-xl text-xs font-medium bg-studio-900/90 text-slate-300 hover:text-white border border-white/5 transition"><i class="fa-solid fa-layer-group text-rose-400 mr-1"></i>Noise Colors (5)</button>
+                        <button data-cat-filter="music" class="cat-tab-btn shrink-0 px-3 py-1.5 rounded-xl text-xs font-medium bg-studio-900/90 text-slate-300 hover:text-white border border-white/5 transition"><i class="fa-solid fa-music text-purple-400 mr-1"></i>Generative Music (5)</button>
+                        <button data-cat-filter="brainwaves" class="cat-tab-btn shrink-0 px-3 py-1.5 rounded-xl text-xs font-medium bg-studio-900/90 text-slate-300 hover:text-white border border-white/5 transition"><i class="fa-solid fa-brain text-fuchsia-400 mr-1"></i>Brainwaves (3)</button>
+                    </div>
+                </div>
+
+                <div id="allCategoriesWrapper" class="space-y-6">
+                    <div id="section-rage" class="category-section space-y-3">
+                        <div class="flex flex-wrap items-center justify-between gap-2 px-1">
+                            <div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse"></span><h3 class="text-sm font-bold uppercase tracking-wider text-rose-300">🔥 Category RAGE: Iconic Grindset Instrumentals (No Words)</h3></div>
+                            <span class="text-xs text-rose-300/80 font-mono">10 Multi-Track Polyphonic Sequenced Anthems</span>
+                        </div>
+                        <div id="category-rage" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3.5"></div>
+                    </div>
+                    <div id="section-weather" class="category-section space-y-3">
+                        <div class="flex items-center justify-between px-1"><div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-cyan-400"></span><h3 class="text-sm font-bold uppercase tracking-wider text-slate-200">Category A: Weather &amp; Water</h3></div><span class="text-xs text-slate-400">7 Hydrological &amp; Storm Synthesizers</span></div>
+                        <div id="category-weather" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3.5"></div>
+                    </div>
+                    <div id="section-nature" class="category-section space-y-3">
+                        <div class="flex items-center justify-between px-1"><div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-emerald-400"></span><h3 class="text-sm font-bold uppercase tracking-wider text-slate-200">Category B: Nature &amp; Nightlife</h3></div><span class="text-xs text-slate-400">5 Biophilic &amp; Hearth Generators</span></div>
+                        <div id="category-nature" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3.5"></div>
+                    </div>
+                    <div id="section-spaces" class="category-section space-y-3">
+                        <div class="flex items-center justify-between px-1"><div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-amber-400"></span><h3 class="text-sm font-bold uppercase tracking-wider text-slate-200">Category C: Study Spaces &amp; Urban Ambience</h3></div><span class="text-xs text-slate-400">7 Acoustic Room &amp; Transit Simulators</span></div>
+                        <div id="category-spaces" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3.5"></div>
+                    </div>
+                    <div id="section-noise" class="category-section space-y-3">
+                        <div class="flex items-center justify-between px-1"><div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-rose-400"></span><h3 class="text-sm font-bold uppercase tracking-wider text-slate-200">Category D: Focus Noise Colors</h3></div><span class="text-xs text-slate-400">5 Calibrated Spectral Masking Beds</span></div>
+                        <div id="category-noise" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3.5"></div>
+                    </div>
+                    <div id="section-music" class="category-section space-y-3">
+                        <div class="flex items-center justify-between px-1"><div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-purple-400"></span><h3 class="text-sm font-bold uppercase tracking-wider text-slate-200">Category E: Generative Music &amp; Melodic Instruments</h3></div><span class="text-xs text-slate-400">5 Polyphonic Sequencers &amp; Resonators</span></div>
+                        <div id="category-music" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3.5"></div>
+                    </div>
+                    <div id="section-brainwaves" class="category-section space-y-3">
+                        <div class="flex items-center justify-between px-1"><div class="flex items-center gap-2"><span class="w-2.5 h-2.5 rounded-full bg-fuchsia-400"></span><h3 class="text-sm font-bold uppercase tracking-wider text-slate-200">Category F: Brainwave Entrainment &amp; Solfeggio</h3></div><span class="text-xs text-slate-400">3 Neural Frequency Engines</span></div>
+                        <div id="category-brainwaves" class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-3.5"></div>
+                    </div>
+                </div>
+
+                <div id="emptyFilterState" class="hidden glass-panel rounded-2xl p-8 text-center space-y-2">
+                    <i class="fa-solid fa-sliders text-2xl text-slate-500"></i>
+                    <p class="text-sm font-semibold text-slate-300">No matching sound channels found</p>
+                    <p class="text-xs text-slate-500">Try clearing your search filter or switching back to "All Sounds".</p>
+                </div>
+            </div>
+
+            <div class="lg:col-span-4 space-y-6">
+                <section class="glass-panel rounded-2xl p-5 shadow-xl border border-white/10">
+                    <div class="flex items-center justify-between mb-4">
+                        <div class="flex items-center gap-2"><i class="fa-solid fa-stopwatch text-indigo-400"></i><h2 class="text-sm font-bold uppercase tracking-wider text-white">Focus Block Timer</h2></div>
+                        <span id="timerPhaseBadge" class="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">Focus Session</span>
+                    </div>
+                    <div class="grid grid-cols-3 gap-1.5 p-1 rounded-xl bg-studio-950/90 border border-white/5 mb-5">
+                        <button data-focus="50" data-break="10" class="timer-mode-btn py-1.5 px-2 rounded-lg text-xs font-semibold bg-indigo-600 text-white shadow transition">50 / 10 Study</button>
+                        <button data-focus="25" data-break="5" class="timer-mode-btn py-1.5 px-2 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition">25 / 5 Pomo</button>
+                        <button data-focus="90" data-break="15" class="timer-mode-btn py-1.5 px-2 rounded-lg text-xs font-medium text-slate-400 hover:text-white transition">90 / 15 Deep</button>
+                    </div>
+                    <div class="relative flex flex-col items-center justify-center my-2">
+                        <svg class="w-44 h-44 -rotate-90 transform" viewBox="0 0 160 160">
+                            <circle cx="80" cy="80" r="68" stroke="rgba(255,255,255,0.06)" stroke-width="8" fill="transparent"></circle>
+                            <circle id="timerProgressCircle" cx="80" cy="80" r="68" stroke="url(#timerGrad)" stroke-width="8" stroke-dasharray="427.25" stroke-dashoffset="0" stroke-linecap="round" fill="transparent" class="transition-all duration-500"></circle>
+                            <defs><linearGradient id="timerGrad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" stop-color="#6366f1" /><stop offset="100%" stop-color="#06b6d4" /></linearGradient></defs>
+                        </svg>
+                        <div class="absolute inset-0 flex flex-col items-center justify-center text-center">
+                            <div id="timerDisplay" class="text-4xl font-mono font-bold tracking-tight text-white">50:00</div>
+                            <div id="timerSubStatus" class="text-[11px] text-slate-400 mt-1">Ready to Focus</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center justify-center gap-4 text-xs text-slate-400 mb-4">
+                        <div class="flex items-center gap-1.5"><span>Focus:</span><button id="focusMinDec" class="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-white font-bold">-</button><span id="customFocusMinLabel" class="font-mono text-white w-6 text-center">50</span><button id="focusMinInc" class="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-white font-bold">+</button></div>
+                        <div class="flex items-center gap-1.5"><span>Break:</span><button id="breakMinDec" class="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-white font-bold">-</button><span id="customBreakMinLabel" class="font-mono text-white w-5 text-center">10</span><button id="breakMinInc" class="w-6 h-6 rounded bg-slate-800 hover:bg-slate-700 text-white font-bold">+</button></div>
+                    </div>
+                    <div class="flex items-center gap-2 mb-4">
+                        <button id="timerStartPauseBtn" class="flex-1 py-2.5 px-4 rounded-xl font-semibold text-xs bg-indigo-600 hover:bg-indigo-500 text-white shadow-lg shadow-indigo-600/30 transition flex items-center justify-center gap-2">
+                            <i class="fa-solid fa-play" id="timerStartPauseIcon"></i>
+                            <span id="timerStartPauseText">Start Focus</span>
+                        </button>
+                        <button id="timerResetBtn" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-white/10 transition"><i class="fa-solid fa-rotate-left"></i></button>
+                        <button id="timerSkipBtn" class="p-2.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white border border-white/10 transition"><i class="fa-solid fa-forward-step"></i></button>
+                    </div>
+                    <div class="space-y-2.5 pt-3 border-t border-white/10 text-xs">
+                        <label class="flex items-center justify-between cursor-pointer text-slate-300 hover:text-white">
+                            <span>Smooth 5s audio fade-out on break</span>
+                            <input id="autoPauseBreakCheckbox" type="checkbox" class="rounded bg-slate-900 border-slate-700 text-indigo-600 focus:ring-indigo-500">
+                        </label>
+                        <div class="flex items-center justify-between text-slate-300">
+                            <label class="flex items-center gap-2 cursor-pointer hover:text-white">
+                                <input id="timerChimeCheckbox" type="checkbox" checked class="rounded bg-slate-900 border-slate-700 text-indigo-600 focus:ring-indigo-500">
+                                <span>Harmonic chime on completion</span>
+                            </label>
+                            <button id="testChimeBtn" class="text-[11px] text-indigo-400 hover:text-indigo-300 underline">Test</button>
+                        </div>
+                        <div class="pt-2 flex items-center justify-between text-slate-400 bg-studio-950/70 px-3 py-2 rounded-xl border border-white/5">
+                            <span>Completed Today:</span>
+                            <div class="flex items-center gap-2">
+                                <span id="completedSessionsCount" class="font-mono font-bold text-emerald-400">0 Sessions</span>
+                                <button id="resetSessionsCountBtn" class="text-[10px] text-slate-500 hover:text-slate-300"><i class="fa-solid fa-eraser"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </section>
+
+                <section class="glass-panel rounded-2xl p-5 shadow-xl border border-white/10">
+                    <div class="flex items-center justify-between mb-3">
+                        <div class="flex items-center gap-2"><i class="fa-solid fa-compact-disc text-cyan-400"></i><h2 class="text-sm font-bold uppercase tracking-wider text-white">Local Audio Track Deck</h2></div>
+                        <span class="text-[11px] font-mono text-slate-400" id="localTracksCountLabel">0 Tracks</span>
+                    </div>
+                    <p class="text-xs text-slate-400 mb-3">Layer your own local <span class="text-slate-200 font-mono">.mp3, .wav, .ogg, .m4a</span> files directly into the studio master bus.</p>
+                    <label id="localAudioDropzone" for="localAudioInput" class="cursor-pointer group flex flex-col items-center justify-center p-4 border-2 border-dashed border-slate-700 hover:border-indigo-500 rounded-xl bg-studio-950/50 hover:bg-indigo-950/20 transition text-center">
+                        <div class="w-9 h-9 rounded-full bg-indigo-500/10 group-hover:bg-indigo-500/20 flex items-center justify-center text-indigo-400 mb-2 transition"><i class="fa-solid fa-cloud-arrow-up"></i></div>
+                        <span class="text-xs font-medium text-slate-200">Click or drag &amp; drop audio files here</span>
+                        <span class="text-[11px] text-slate-500 mt-0.5">100% private local browser playback</span>
+                        <input id="localAudioInput" type="file" accept="audio/*" multiple class="hidden">
+                    </label>
+                    <div id="localTracksContainer" class="mt-3 space-y-2.5 max-h-72 overflow-y-auto pr-1"></div>
+                </section>
+            </div>
+        </div>
+    </main>
+
+    <!-- FOOTER MASTER CONTROL BAR -->
+    <footer class="fixed bottom-0 inset-x-0 z-40 glass-panel border-t border-white/15 shadow-2xl">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3">
+            <div class="flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center gap-3">
+                    <button id="masterPlayPauseBtn" class="px-5 py-2.5 rounded-xl font-semibold text-xs sm:text-sm bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white shadow-lg shadow-indigo-500/30 transition flex items-center gap-2.5">
+                        <i class="fa-solid fa-play" id="masterPlayPauseIcon"></i>
+                        <span id="masterPlayPauseText">Play Master Mix</span>
+                    </button>
+                    <button id="silenceAllBtn" class="px-3.5 py-2.5 rounded-xl text-xs font-medium bg-slate-800/90 hover:bg-rose-950/80 text-slate-300 hover:text-rose-300 border border-white/10 hover:border-rose-500/40 transition flex items-center gap-2">
+                        <i class="fa-solid fa-power-off"></i>
+                        <span class="hidden sm:inline">Silence All</span>
+                    </button>
+                </div>
+                <div class="hidden md:flex items-center gap-2 flex-1 max-w-md mx-4 overflow-hidden">
+                    <span class="text-[11px] uppercase tracking-wider font-mono text-slate-400 shrink-0">Active Mix:</span>
+                    <div id="activeMixSummaryText" class="text-xs text-indigo-300 truncate font-medium">No channels active — Choose a preset or toggle any sound card</div>
+                </div>
+                <div class="flex items-center gap-3 w-full sm:w-auto justify-end">
+                    <button id="masterMuteBtn" class="w-9 h-9 rounded-xl bg-slate-800/90 hover:bg-slate-700 text-slate-200 flex items-center justify-center border border-white/10 transition">
+                        <i class="fa-solid fa-volume-high" id="masterVolumeIcon"></i>
+                    </button>
+                    <div class="w-32 sm:w-40 flex items-center gap-2.5">
+                        <input id="masterVolumeSlider" type="range" min="0" max="100" value="85" class="studio-slider">
+                        <span id="masterVolumeValue" class="text-xs font-mono font-semibold text-slate-200 w-10 text-right">85%</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <div id="toastContainer" class="fixed bottom-20 right-4 z-50 flex flex-col gap-2 pointer-events-none"></div>
+
+    <!-- Background MSE bridge audio element (offscreen, never display:none) -->
+    <audio id="bg-media-bridge" playsinline preload="auto" style="position:absolute;left:-9999px;width:1px;height:1px;"></audio>
+
+    <script src="app.js" defer></script>
+</body>
+</html>

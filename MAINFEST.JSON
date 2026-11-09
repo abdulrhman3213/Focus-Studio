@@ -1,0 +1,17 @@
+{
+    "name": "FocusFlow Studio Pro",
+    "short_name": "FocusFlow",
+    "description": "Ambient soundscape mixer, Rage Mode instrumentals, focus timer, and lock-screen playback.",
+    "start_url": "./index.html",
+    "scope": "./",
+    "display": "standalone",
+    "display_override": ["standalone", "minimal-ui"],
+    "orientation": "any",
+    "background_color": "#070913",
+    "theme_color": "#070913",
+    "categories": ["productivity", "music", "lifestyle"],
+    "icons": [
+        { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" },
+        { "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "maskable" }
+    ]
+}
